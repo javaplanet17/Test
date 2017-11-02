@@ -1,0 +1,132 @@
+import UIKit
+import SceneKit
+import ARKit
+
+//intro view
+class ViewController: UIViewController, ARSCNViewDelegate {
+
+    @IBOutlet var sceneView: ARSCNView!
+    var Scenekits:SCNHitTestOption!
+    var text = SCNText(string: "Hello everyone here i am", extrusionDepth: 1)
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Set the view's delegate
+        sceneView.delegate = self
+        
+        // Show statistics such as fps and timing information
+        sceneView.showsStatistics = true
+        
+        // Create a new scene
+        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        
+        // Set the scene to the view
+        //sceneView.scene = scene
+       
+        // show the text
+        text = SCNText(string: "Hello everyone here i am", extrusionDepth: 1)
+        
+        // create material object
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.lightGray
+        text.materials = [material]
+        
+        // camera transform
+        //let cameraTransform = sceneView.session.currentFrame!.camera.transform
+        
+    }
+    
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+       guard let touch = touches.first else{return}
+        let point = touch.location(in: sceneView)
+        //print(point)
+        var hitResults = sceneView.hitTest(point, options: nil)
+        print(hitResults.count)
+        // check that we clicked on at least one object
+        if hitResults.count > 0 {
+            // retrieved the first clicked object
+            var result: SCNHitTestResult? = hitResults.first
+            //position relative to local in V3
+            //position relative to world in V3
+            var wcl = result?.worldCoordinates
+            
+            createball(position: wcl!)
+        }
+    }
+    
+    func createball(position: SCNVector3){
+        var ballshape = SCNSphere(radius: 0.1)
+        var ballnode = SCNNode(geometry: ballshape)
+        ballnode.position = position
+        sceneView.scene.rootNode.addChildNode(ballnode)
+    }
+    
+    // keep the
+    func renderer(_ renderer: SCNSceneRenderer, willRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        print("rendering")
+        guard let pointofview = sceneView.pointOfView else {return}
+        let transform = pointofview.transform
+        let orientation = SCNVector3Make(-transform.m31, -transform.m32, -transform.m33)
+        let location = SCNVector3Make(transform.m41, transform.m42, transform.m43)
+        let currentPositionCamera = orientation + location
+        print("orientation = \(orientation.x,orientation.y,orientation.z)")
+        print("current position = \(currentPositionCamera.x,currentPositionCamera.y,currentPositionCamera.z)")
+        
+        // assign text to a coordinate
+        let node = SCNNode()
+        node.position = SCNVector3(x:currentPositionCamera.x - 3, y:currentPositionCamera.y - 2
+            , z: -6)
+        node.scale = SCNVector3(x:0.5, y:0.5, z:0.5)
+        
+        // color of the plane
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.cyan
+        text.materials = [material]
+        
+        //creating the plane
+        let test = SCNPlane()
+        test.height = 50
+        test.width = 50
+        test.heightSegmentCount = 50
+        test.widthSegmentCount = 50
+        test.cornerRadius = 5
+        test.materials = [material]
+        node.geometry = test
+        
+        node.geometry = test
+        
+        // assign coordinate to the scene
+        // self.sceneView.scene.rootNode.addChildNode(node)
+        self.sceneView.pointOfView?.addChildNode(node)
+        self.sceneView.autoenablesDefaultLighting = true
+    }
+    
+
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Create a session configuration
+        let configuration = ARWorldTrackingConfiguration()
+
+        // Run the view's session
+        sceneView.session.run(configuration)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Pause the view's session
+        sceneView.session.pause()
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Release any cached data, images, etc that aren't in use.
+    }
+
+}
+
+func +(left: SCNVector3, right: SCNVector3) -> SCNVector3{
+    return SCNVector3Make(left.x + right.x, left.y + right.y, left.y + right.y)
+}
